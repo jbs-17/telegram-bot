@@ -16,11 +16,12 @@ const isAndroid = process.platform === 'android';
 
 const commands = `
 Command List:\n
- '/help'       : tampilkan daftar perintah atau pesan ini\n
- '/halo'       : menyapa dengan nama kamu\n
- '/hai'        : menyapa dengan nama kamu\n
- '/platform'   : menunjukan bot platform berjalan: 'android' | 'windows'
- '/exec'       : eksekusi kode 
+ /help       : tampilkan daftar perintah atau pesan ini\n
+ /halo       : menyapa dengan nama kamu\n
+ /hai        : menyapa dengan nama kamu\n
+ /platform   : menunjukan bot platform berjalan: 'android' | 'windows'\n
+ /exec       : eksekusi kode dengan satu perintah lengkap dengan argumenya(gunakan pola sesuai contoh). Contoh: /exec "yt-dlp -F https://youtube.com/video/aAiu9dh8&bcs"
+
 `;
 
 // instance bot
@@ -34,7 +35,7 @@ bot.use(async (ctx, next) => {
     return ctx.reply('private only')
   };
 
-  console.log('NEW REQUEST:', + `${ctx.message.chat}`);
+  console.log('NEW REQUEST:');
   console.time(`Proses update ${ctx.update.update_id}`);
   await next();
   console.timeEnd(`Proses update ${ctx.update.update_id}`);
@@ -65,13 +66,18 @@ bot.command('platform', (ctx) => {
   ctx.reply(process.platform);
 });
 //exec
-bot.command('exec', (ctx) => {
-  console.log(ctx.message.chat);
-  if (`${ctx.message.chat.id}` !== config.ADMIN_ID) {
-    return ctx.reply('kamu bukan admin')
+bot.command('exec', async (ctx) => {
+  const command = ctx.args[0];
+  if (`${ctx.message.chat.id}` !== config.ADMIN_ID) return ctx.reply('kamu bukan admin');
+  if (!command) return ctx.reply('diperlukan perintah');
+  try {
+    const exec = await execCommand(command)
+    ctx.reply(exec);
+  } catch (error) {
+    ctx.reply(`gagal menjalankan perintah.\n ERROR: ${error.message || 'internal error'}`);
   }
-  ctx.reply('kamu admin')
 });
+//yt-dlp
 
 
 
