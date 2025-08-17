@@ -46,10 +46,6 @@ bot.use(async (ctx, next) => {
 
 
 
-// Menanggapi semua pesan teks lainnya
-bot.on('text', (ctx) => {
-  ctx.reply(`perintah:\n"${ctx.text}"\ntidak ada! \n\nsilahkan pakai fitur-fitur yang tersedia 😁`);
-});
 
 // Menanggapi perintah /start
 bot.start((ctx) => {
@@ -76,12 +72,17 @@ bot.command('platform', (ctx) => {
   ctx.reply(process.platform);
 });
 //exec
+const forbidden = ["exit", "node", "python"];
 bot.command('exec', async (ctx) => {
   const command = ctx.args[0];
   if (`${ctx.message.chat.id}` !== config.ADMIN_ID) return ctx.reply('kamu bukan admin');
   if (!command) return ctx.reply('diperlukan perintah');
+  if(forbidden.some(f => command.includes(f))){
+    return ctx.reply('perintah dilarang');
+  }
   try {
-    const exec = await execCommand(command)
+    
+    const exec = await execCommand(command) || '1'
     ctx.reply(exec);
   } catch (error) {
     ctx.reply(`gagal menjalankan perintah.\n ERROR: ${error.message || 'internal error'}`);
@@ -225,6 +226,10 @@ bot.on('document', async (ctx) => {
 });
 
 
+// Menanggapi semua pesan teks lainnya
+bot.on('text', (ctx) => {
+  ctx.reply(`perintah:\n"${ctx.text}"\ntidak ada! \n\nsilahkan pakai fitur-fitur yang tersedia 😁`);
+});
 
 
 // Jalankan bot
