@@ -5,7 +5,7 @@ import axios from 'axios';
 
 import fs from 'fs/promises';
 import path from 'node:path';
-
+import { URL } from 'node:url';
 import { config } from './config.js';
 import { execCommand } from './utils/execCommad.js';
 
@@ -77,8 +77,22 @@ bot.command('exec', async (ctx) => {
     ctx.reply(`gagal menjalankan perintah.\n ERROR: ${error.message || 'internal error'}`);
   }
 });
-//yt-dlp
 
+
+//yt-dlp auto sesuai requested format
+bot.command('download_auto', async (ctx) => {
+  const url = ctx.args[0];
+  if (`${ctx.message.chat.id}` !== config.ADMIN_ID) return ctx.reply('kamu bukan admin');
+  if (!url) return ctx.reply('diperlukan url yang valid');
+  try {
+    const download = await execCommand(`yt-dlp -o "${config.TMP}/%(title)s.%(ext)s" ${url}`);
+    ctx.reply(`oke'}`);
+
+  } catch (error) {
+    console.log(error);
+    ctx.reply(`gagal menjalankan perintah.\n ERROR: ${error.message || 'internal error'}`);
+  }
+});
 
 
 
