@@ -9,6 +9,8 @@ import { URL } from 'node:url';
 import { config } from './config.js';
 import { execCommand } from './utils/execCommad.js';
 
+import {downloadList, startDownload} from './download.js'
+
 const isAndroid = process.platform === 'android';
 
 
@@ -79,15 +81,18 @@ bot.command('exec', async (ctx) => {
 });
 
 
+
+
+
+
 //yt-dlp auto sesuai requested format
 bot.command('download_auto', async (ctx) => {
   const url = ctx.args[0];
-  if (`${ctx.message.chat.id}` !== config.ADMIN_ID) return ctx.reply('kamu bukan admin');
   if (!url) return ctx.reply('diperlukan url yang valid');
   try {
-    const download = await execCommand(`yt-dlp -o "${config.TMP}/%(title)s.%(ext)s" ${url}`);
-    ctx.reply(`oke'}`);
-
+    ctx.reply(`donload sedang diproses dan akan dikirim hasilnya nanti... silahkan menunggu...`);
+    const ff = await startDownload(ctx.message.chat.id, url);
+    
   } catch (error) {
     console.log(error);
     ctx.reply(`gagal menjalankan perintah.\n ERROR: ${error.message || 'internal error'}`);
@@ -95,17 +100,6 @@ bot.command('download_auto', async (ctx) => {
 });
 
 
-
-// Menanggapi perintah kustom /hitung
-bot.command('hitung', (ctx) => {
-  try {
-    const args = ctx.message.text.split(' ').slice(1);
-    const hasil = eval(args.join(' ')); // HATI-HATI: eval() tidak aman untuk input dari pengguna
-    ctx.reply(`Hasil dari ${args.join(' ')} adalah: ${hasil}`);
-  } catch (error) {
-    ctx.reply('Format perhitungan salah. Contoh: /hitung 10 + 5');
-  }
-});
 
 
 const backCameraResult = './storage/camera/0.jpeg';
