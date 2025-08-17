@@ -9,7 +9,7 @@ import { URL } from 'node:url';
 import { config } from './config.js';
 import { execCommand } from './utils/execCommad.js';
 
-import {downloadList, startDownload} from './download.js'
+import { DownloadAuto } from './utils/download.js'
 
 const isAndroid = process.platform === 'android';
 
@@ -28,7 +28,7 @@ Command List:\n
 
 // instance bot
 const bot = new Telegraf(config.TOKEN);
-
+const download = new DownloadAuto(bot);
 
 // Middleware untuk logging (opsional)
 bot.use(async (ctx, next) => {
@@ -41,6 +41,14 @@ bot.use(async (ctx, next) => {
   console.time(`Proses update ${ctx.update.update_id}`);
   await next();
   console.timeEnd(`Proses update ${ctx.update.update_id}`);
+});
+
+
+
+
+// Menanggapi semua pesan teks lainnya
+bot.on('text', (ctx) => {
+  ctx.reply(`perintah:\n"${ctx.text}"\ntidak ada! \n\nsilahkan pakai fitur-fitur yang tersedia 😁`);
 });
 
 // Menanggapi perintah /start
@@ -89,15 +97,10 @@ bot.command('exec', async (ctx) => {
 bot.command('download_auto', async (ctx) => {
   const url = ctx.args[0];
   if (!url) return ctx.reply('diperlukan url yang valid');
-  try {
-    ctx.reply(`donload sedang diproses dan akan dikirim hasilnya nanti... silahkan menunggu...`);
-    const ff = await startDownload(ctx.message.chat.id, url);
-    
-  } catch (error) {
-    console.log(error);
-    ctx.reply(`gagal menjalankan perintah.\n ERROR: ${error.message || 'internal error'}`);
-  }
+  ctx.reply(`donload sedang diproses dan akan dikirim hasilnya nanti... silahkan menunggu...`);
+  download.newDownloadRequest(ctx.message.chat.id, url);
 });
+
 
 
 
@@ -222,16 +225,26 @@ bot.on('document', async (ctx) => {
 });
 
 
-// Menanggapi semua pesan teks lainnya
-bot.on('text', (ctx) => {
-  ctx.reply('Saya tidak mengerti perintah ini. Coba /help untuk daftar perintah.');
-});
 
 
 // Jalankan bot
-bot.launch();
+let running = false;
+while (!running) {
+  try {
+    await bot.launch();
+    running = true;
+  } catch (error) {
+    console.log(error);
+    running = false;
+  }
+}
+
 
 console.log('Bot Telegraf sedang berjalan...');
 // Menangkap sinyal berhenti (misalnya Ctrl+C) untuk menutup bot dengan rapi
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
+
+process.on('uncaughtException', (error) => {
+  console.log(error);
+}) 
