@@ -4,6 +4,9 @@ import { Telegraf, Markup } from 'telegraf';
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
+import {execCommand} from './utils/execCommad.js';
+
+
 
 // Ganti dengan token bot Anda
 const token = '8228908836:AAGrSiqDkGcm_puNuB9Qr9xLH0P5yB9p2zE';
@@ -53,6 +56,34 @@ bot.command('hitung', (ctx) => {
     ctx.reply('Format perhitungan salah. Contoh: /hitung 10 + 5');
   }
 });
+// Menanggapi perintah kustom /hitung
+bot.command('hitung', (ctx) => {
+  try {
+    const args = ctx.message.text.split(' ').slice(1);
+    const hasil = eval(args.join(' ')); // HATI-HATI: eval() tidak aman untuk input dari pengguna
+    ctx.reply(`Hasil dari ${args.join(' ')} adalah: ${hasil}`);
+  } catch (error) {
+    ctx.reply('Format perhitungan salah. Contoh: /hitung 10 + 5');
+  }
+});
+
+
+const backCameraResult = './storage/camera/0.jpeg'
+// Menanggapi perintah kustom /hitung
+bot.command('camera',async (ctx) => {
+  try {
+    const args = ctx.message.text.split(' ').slice(1);
+    if(args[0] === '0'){
+      await execCommand(`termux-camera-photo -c 0 ${backCameraResult}`);
+      await ctx.replyWithDocument({ source: backCameraResult });
+    }
+    ctx.reply('apa coba');
+  } catch (error) {
+    console.log(error);
+    ctx.reply(`maaf, terjadi error\n\n${error.message}`);
+  }
+});
+
 
 // Mengirim foto dari URL
 bot.command('kirimfoto', (ctx) => {
@@ -86,6 +117,9 @@ bot.command('pilihan', (ctx) => {
 bot.hears('Pilihan 1', (ctx) => ctx.reply('Anda memilih Pilihan 1!'));
 bot.hears('Pilihan 2', (ctx) => ctx.reply('Anda memilih Pilihan 2!'));
 bot.hears('Batal', (ctx) => ctx.reply('Pilihan dibatalkan.', Markup.removeKeyboard()));
+
+
+
 
 // --- Markup Inline Keyboard ---
 bot.command('inline', (ctx) => {
