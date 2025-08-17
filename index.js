@@ -2,20 +2,39 @@
 
 import { Telegraf, Markup } from 'telegraf';
 import axios from 'axios';
-import fs from 'fs';
-import path from 'path';
-import {execCommand} from './utils/execCommad.js';
+
+import fs from 'fs/promises';
+import path from 'node:path';
+
+import { config } from './config.js';
+import { execCommand } from './utils/execCommad.js';
+
+const isAndroid = process.platform === 'android';
 
 
 
-// Ganti dengan token bot Anda
-const token = '8228908836:AAGrSiqDkGcm_puNuB9Qr9xLH0P5yB9p2zE';
 
-// Buat instance bot
-const bot = new Telegraf(token);
+const commands = `
+Command List:\n
+ '/help'       : tampilkan daftar perintah atau pesan ini\n
+ '/halo'       : menyapa dengan nama kamu\n
+ '/hai'        : menyapa dengan nama kamu\n
+ '/platform'   : menunjukan bot platform berjalan: 'android' | 'windows'
+ '/exec'       : eksekusi kode 
+`;
+
+// instance bot
+const bot = new Telegraf(config.TOKEN);
+
 
 // Middleware untuk logging (opsional)
 bot.use(async (ctx, next) => {
+  console.log(' ');
+  if (!ctx.message.chat.type === 'private') {
+    return ctx.reply('private only')
+  };
+
+  console.log('NEW REQUEST:', + `${ctx.message.chat}`);
   console.time(`Proses update ${ctx.update.update_id}`);
   await next();
   console.timeEnd(`Proses update ${ctx.update.update_id}`);
@@ -23,28 +42,39 @@ bot.use(async (ctx, next) => {
 
 // Menanggapi perintah /start
 bot.start((ctx) => {
-  ctx.reply('Selamat datang! Ada yang bisa saya bantu? Silakan gunakan /help untuk melihat fitur.');
+  ctx.reply('Silahkan gunakan /help untuk melihat daftar fitur 😉');
 });
-
 // Menanggapi perintah /help
 bot.help((ctx) => {
-  ctx.reply('Berikut beberapa perintah yang bisa Anda gunakan:\n' +
-    '/start - Memulai bot\n' +
-    '/help - Menampilkan daftar perintah\n' +
-    '/halo - Menyapa kembali Anda\n' +
-    '/hitung [angka] [operator] [angka] - Contoh: /hitung 10 + 5\n' +
-    '/pilihan - Menampilkan keyboard pilihan\n' +
-    '/inline - Menampilkan tombol inline\n' +
-    '/kirimfoto - Mengirim foto dari URL\n' +
-    '/kirimfile - Mengirim file dari server\n\n' +
-    'Anda juga bisa mengirim saya foto atau file untuk saya simpan.');
+  ctx.reply(commands);
 });
 
-// Menanggapi perintah kustom /halo
+/* COMMANDS */
+// /halo
 bot.command('halo', (ctx) => {
-  const username = ctx.from.username || ctx.from.first_name;
-  ctx.reply(`Hai ${username}, saya siap membantu!`);
+  const username = ctx.from.username || ctx.from.first_name + ' ' + ctx.from.last_name;
+  ctx.reply(`Hai ${username} 🤗`);
 });
+// /hai
+bot.command('hai', (ctx) => {
+  const username = ctx.from.username || ctx.from.first_name + ' ' + ctx.from.last_name;
+  ctx.reply(`Halo ${username} 😃`);
+});
+// platform
+bot.command('platform', (ctx) => {
+  ctx.reply(process.platform);
+});
+//exec
+bot.command('exec', (ctx) => {
+  console.log(ctx.message.chat);
+  if (`${ctx.message.chat.id}` !== config.ADMIN_ID) {
+    return ctx.reply('kamu bukan admin')
+  }
+  ctx.reply('kamu admin')
+});
+
+
+
 
 // Menanggapi perintah kustom /hitung
 bot.command('hitung', (ctx) => {
@@ -56,24 +86,17 @@ bot.command('hitung', (ctx) => {
     ctx.reply('Format perhitungan salah. Contoh: /hitung 10 + 5');
   }
 });
-// Menanggapi perintah kustom /hitung
-bot.command('hitung', (ctx) => {
-  try {
-    const args = ctx.message.text.split(' ').slice(1);
-    const hasil = eval(args.join(' ')); // HATI-HATI: eval() tidak aman untuk input dari pengguna
-    ctx.reply(`Hasil dari ${args.join(' ')} adalah: ${hasil}`);
-  } catch (error) {
-    ctx.reply('Format perhitungan salah. Contoh: /hitung 10 + 5');
-  }
-});
 
 
-const backCameraResult = './storage/camera/0.jpeg'
+const backCameraResult = './storage/camera/0.jpeg';
 // Menanggapi perintah kustom /hitung
-bot.command('camera',async (ctx) => {
+bot.command('camera', async (ctx) => {
   try {
+    if (!isAndroid) {
+      return ctx.reply('platform tidak didukung!');
+    }
     const args = ctx.message.text.split(' ').slice(1);
-    if(args[0] === '0'){
+    if (args[0] === '0') {
       await execCommand(`termux-camera-photo -c 0 ${backCameraResult}`);
       await ctx.replyWithDocument({ source: backCameraResult });
     }
@@ -184,16 +207,17 @@ bot.on('document', async (ctx) => {
   }
 });
 
+
 // Menanggapi semua pesan teks lainnya
 bot.on('text', (ctx) => {
   ctx.reply('Saya tidak mengerti perintah ini. Coba /help untuk daftar perintah.');
 });
 
+
 // Jalankan bot
 bot.launch();
 
 console.log('Bot Telegraf sedang berjalan...');
-
 // Menangkap sinyal berhenti (misalnya Ctrl+C) untuk menutup bot dengan rapi
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
